@@ -1,0 +1,122 @@
+#ifdef ENERGIA
+  #include "Energia.h"
+#else
+  #include "Arduino.h"
+#endif
+
+#include <LiquidCrystal.h>
+
+#define R_LED 10
+#define G_LED  9
+
+#define SERIAL_SPEED 9600
+
+#define TRANSMISSION_DELAY 1000
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+String input;
+unsigned long lastTransmission = 0;
+
+void led_flash(int, int, int);
+void led_breathe(int, int);
+
+void bee_configure();
+void bee_transmit();
+void bee_receive();
+
+void setup() {
+	lcd.begin(16, 2);
+	lcd.print("SETUP...");
+
+	Serial.begin(SERIAL_SPEED);
+	bee_configure();
+
+	pinMode(G_LED, OUTPUT);
+	pinMode(R_LED, OUTPUT);
+
+	lcd.begin(16, 2);
+	lcd.print("RUNNING...");
+}
+
+void loop() {
+	led_flash(G_LED, 500, 1);
+
+	bee_transmit();
+	bee_receive();
+}
+
+void led_breathe(int led, int length) {
+	int a;
+	int step = length / 512;
+
+	for (a=0; a<256; a++) {
+		analogWrite(led, a);
+		delay(step);
+	}
+
+	for (a=255; a>=0; a--) {
+		analogWrite(led, a);
+		delay(step);
+	}
+}
+
+void led_flash(int led, int length, int count) {
+	int step = length / ( 2 * count );
+
+	for (int i=0; i<count; i++) {
+		digitalWrite(led, HIGH);
+		delay(step);
+		digitalWrite(led, LOW);
+		delay(step);
+	}
+}
+
+void bee_configure() {
+	char thisByte = 0;
+
+	Serial.print("+++");
+
+	while (thisByte != '\r' && thisByte != '\n') {
+		if (Serial.available() > 0)
+			thisByte = Serial.read(); 
+	}
+
+	Serial.print("ATRE\r");
+	Serial.print("ATMY");
+	Serial.print(BEE_ADDRESS);
+	Serial.print("\r"); 
+	Serial.print("ATID1111\r");
+	Serial.print("ATCN\r");
+}
+
+void bee_transmit() {
+	if (millis() < lastTransmission)
+		lastTransmission = 0;
+
+	if ((millis() - lastTransmission) > TRANSMISSION_DELAY) {
+		Serial.print("I AM ");
+		Serial.print(BEE_ADDRESS);
+		Serial.print("\n");
+		lastTransmission = millis();
+	}
+}
+
+void bee_receive() {
+	if (Serial.available() > 0) {
+		char inByte = Serial.read();
+
+		if (inByte == '\n') {
+			lcd.setCursor(0, 1);
+			lcd.print(input);
+		
+			input = "";
+		}
+		else {
+			lcd.setCursor(15, 0);
+			lcd.print(inByte, HEX);
+			input += inByte;
+		}
+	}
+}
+
