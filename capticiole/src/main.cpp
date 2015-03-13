@@ -1,3 +1,21 @@
+/**
+ * Copyright (c) 2015 Guilhelm Savin. All rights reserved.
+ *
+ * This file is part of Arduiciole.
+ *
+ * Arduiciole is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Arduiciole is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with XBee-Arduino.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #ifdef ENERGIA
   #include "Energia.h"
 #else
@@ -11,24 +29,15 @@
 
 #define SONDE A0
 
-#define SERIAL_SPEED 9600
-
 XBee xbee = XBee();
-XBeeResponse response = XBeeResponse();
 
-Rx16Response rx16 = Rx16Response();
-Rx64Response rx64 = Rx64Response();
-
-void led_flash(int, int, int);
-void led_breathe(int, uint32_t, uint32_t);
+void led_flash(int, uint32_t, uint32_t);
 
 void xbee_configure();
 void xbee_transmit();
-void xbee_receive();
-void xbee_decode_message(RxResponse&);
 
 void setup() {
-	Serial.begin(SERIAL_SPEED);
+	Serial.begin(9600);
 	xbee_configure();
 	xbee.begin(Serial);
 
@@ -37,34 +46,12 @@ void setup() {
 }
 
 void loop() {
-#ifdef RECEIVER
-	led_flash(G_LED, 500, 1);
-	xbee_receive();
-#else
 	led_flash(G_LED, 500, 1);
 	xbee_transmit();
-#endif	
 }
 
-void led_breathe(int led, uint32_t length, uint32_t count) {
-	int a, i;
-	int step = length / (count * 512);
-
-	for (i=0; i<count; i++) {
-		for (a=0; a<256; a++) {
-			analogWrite(led, a);
-			delay(step);
-		}
-
-		for (a=255; a>=0; a--) {
-			analogWrite(led, a);
-			delay(step);
-		}
-	}
-}
-
-void led_flash(int led, int length, int count) {
-	int step = length / ( 2 * count );
+void led_flash(int led, uint32_t step, uint32_t count) {
+	step /= 2;
 
 	for (int i=0; i<count; i++) {
 		digitalWrite(led, HIGH);
@@ -93,19 +80,6 @@ void xbee_configure() {
 	Serial.print("ATID1111\r");
 	Serial.print("ATCH0C\r");
 	Serial.print("ATCN\r");
-}
-
-void xbee_decode_message(Rx16Response& r) {
-	uint8_t* data = r.getData();
-	uint16_t value = data[0] << 8 | data[1];
-	uint8_t label_length = data[1];
-	
-	char message[label_length];
-
-	for (int i=0; i<label_length; i++)
-		message[i] = static_cast<char>(data[i+2]);
-
-	led_breathe(G_LED, 5000, 4);
 }
 
 void xbee_transmit() {
@@ -161,24 +135,3 @@ void xbee_transmit() {
 	}
 }
 
-void xbee_receive() {
-	xbee.readPacket();
-
-	if (xbee.getResponse().isAvailable()) {
-		//		
-		// Got something
-		//
-		if (xbee.getResponse().getApiId() == TX_16_REQUEST) {
-			//
-			// Got a rx packet
-			//
-			xbee.getResponse().getRx16Response(rx16);
-			xbee_decode_message(rx16);
-		} else {
-			// not something we were expecting
-			led_flash(R_LED, 2000, 50);
-		}
-	} else if (xbee.getResponse().isError()) {
-		led_flash(R_LED, 2000, 50);
-	}
-}
