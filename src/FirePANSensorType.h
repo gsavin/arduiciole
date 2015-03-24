@@ -16,10 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with XBee-Arduino.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _ARDUICIOLE_SENSOR_TYPE_H_
-#define _ARDUICIOLE_SENSOR_TYPE_H_
+#ifndef _FIREPAN_SENSOR_TYPE_H_
+#define _FIREPAN_SENSOR_TYPE_H_
 
 #define SENSOR_LIGHT 0x01
 
-#endif /* _ARDUICIOLE_SENSOR_TYPE_H_ */
+#endif /* _FIREPAN_SENSOR_TYPE_H_ */
 

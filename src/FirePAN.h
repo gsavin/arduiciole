@@ -16,40 +16,57 @@
  * You should have received a copy of the GNU General Public License
  * along with XBee-Arduino.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _ARDUICIOLE_H_
-#define _ARDUICIOLE_H_
+#ifndef _FIREPAN_H_
+#define _FIREPAN_H_
 
-#include "ArduicioleSensorType.h"
+#ifdef ENERGIA
+  #include "Energia.h"
+#else
+  #include "Arduino.h"
+#endif
+
+#include "FirePANSensorType.h"
 
 #define MAX_DATA_SIZE 100
 
-#define ASTREAM_SUCCESS 			 0
-#define ASTREAM_ERROR_NOT_RECEIVED		-1
-#define ASTREAM_ERROR_RESPONSE 			-2
-#define ASTREAM_ERROR_NO_STATUS_RESPONSE	-3
+#define TRANSMIT_SUCCESS 			 0
+#define TRANSMIT_ERROR_NOT_RECEIVED		-1
+#define TRANSMIT_ERROR_RESPONSE 		-2
+#define TRANSMIT_ERROR_NO_STATUS_RESPONSE	-3
+#define TRANSMIT_ERROR_NO_DEVICE		-4
+
+#define FIREPAN_DB_CMD "firepan_db.py"
 
 typedef enum { ANALOG, DIGITAL } sensor_source_type_t;
 
-typedef struct {
-	uint8_t  arduiciole_chunk_count
-} pack_header_t;
+typedef uint32_t actor_id_t;
 
-typedef struct {
-	uint8_t  sensor_id,
-	uint8_t  sensor_type,
-	uint32_t sensor_data
-} pack_chunk_t;
+struct pack_header_t {
+	actor_id_t	id;
+	uint8_t  	chunk_count;
+};
 
-typedef struct {
-	sensor_source_type_t 	source;
+struct pack_chunk_t {
+	uint8_t  sensor_id;
+	uint8_t  sensor_type;
+	uint32_t sensor_data;
+};
+
+struct pack_t {
+	pack_header_t header;
+	pack_chunk_t *chunks;
+};
+
+struct sensor_source_t {
+	sensor_source_type_t 	type;
 	int 			pin;
-} sensor_source_t;
+};
 
-class Arduiciole {
+class FireActor {
 public:
-	Arduiciole();
-	Arduiciole(uint8_t);
-	~Arduiciole();
+	FireActor();
+	FireActor(uint8_t);
+	~FireActor();
 	
 	/**
 	 * The number of sensors on this arduiciole.
@@ -67,6 +84,7 @@ public:
 	void setSensorSource(uint8_t, sensor_source_type_t, int);
 	
 	void transmit();
+	void receive();
 	
 	void init();
 	
@@ -78,11 +96,13 @@ private:
 	uint8_t* 	 sensor_data;
 	sensor_source_t* sensor_sources;
 	
-	pack_chunk_t* getSensorChunk(uint8_t);
+	pack_chunk_t* getPackChunk(uint8_t);
 	
 	int __transmit();
 	void __check_data();
+	void __handle_remote_pack(uint8_t*);
+	void __handle_remote_chunk(actor_id_t, pack_chunk_t&);
 };
 
-#endif /* _ARDUICIOLE_H_ */
+#endif /* _FIREPAN_H_ */
 
